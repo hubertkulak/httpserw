@@ -2,7 +2,13 @@
 
 esp_err_t get_handler(httpd_req_t *req)
 {
-    char *response_message = "PWR WROCLAW BANAN XXL";
+    char *response_message = "<!DOCTYPE HTML><html><head>\
+                                <title>Static HTML page</title>\
+                                <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
+                                </head><body>\
+                                <h1>This is static HTML page</h1>\
+                                </form><br>\
+                                </body></html>";
     httpd_resp_send(req, response_message, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
      }
