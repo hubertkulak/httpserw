@@ -1,17 +1,67 @@
 #include "http.h"
 
+static const char *TAG = "ESP32 Server";
+
 esp_err_t get_handler(httpd_req_t *req)
 {
-    char *response_message = "<!DOCTYPE HTML><html><head>\
-                                <title>Static HTML page</title>\
-                                <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
-                                </head><body>\
-                                <h1>This is static HTML page</h1>\
-                                </form><br>\
-                                </body></html>";
+    char *response_message =  "<!DOCTYPE HTML><html><head>\
+                            <title>ESP Input Form</title>\
+                            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
+                            </head><body>\
+                            <form action=\"/get\">\
+                                str: <input type=\"text\" name=\"str\">\
+                                <input type=\"submit\" value=\"Submit\">\
+                            </form><br>\
+                            <form action=\"/get\">\
+                                int: <input type=\"text\" name=\"int\">\
+                                <input type=\"submit\" value=\"Submit\">\
+                            </form><br>\
+                            </body></html>";
     httpd_resp_send(req, response_message, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
      }
+
+esp_err_t get_handler_str(httpd_req_t *req)
+{
+
+    //read the uri line and get the host
+    char * buf;
+    size_t buf_len;
+    buf_len = httpd_req_get_hdr_value_len(req, "Host")+1;
+
+    if(buf_len > 1)
+    {
+        buf = malloc(buf_len);
+        if(httpd_req_get_hdr_value_str(req,"Host",buf,buf_len)==ESP_OK)
+        {
+            ESP_LOGI(TAG, "Host: %s", buf);
+        }
+        free(buf);
+    }
+
+    //read the uri line and get the parameters
+    buf_len = httpd_req_get_url_query_len(req) + 1;
+
+    if(buf_len > 1)
+    {
+        buf = malloc(buf_len);
+        if(httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK)
+        {
+            ESP_LOGI(TAG, "Found URL query: %s", buf);
+            char param[32];
+            if (httpd_query_key_value(buf, "str", param, sizeof(param)) == ESP_OK) {
+                ESP_LOGI(TAG, "The string value = %s", param);
+            }
+            if (httpd_query_key_value(buf, "int", param, sizeof(param)) == ESP_OK) {
+                ESP_LOGI(TAG, "The int value = %s", param);
+            }
+        }
+        free(buf);
+    }
+     const char resp[] = "The data was sent ...";
+    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
 
 httpd_uri_t uri_get = {
     .uri      = "/", // Was changed .................
@@ -19,6 +69,14 @@ httpd_uri_t uri_get = {
     .handler  = get_handler,
     .user_ctx = NULL
     };
+
+httpd_uri_t uri_get_input = {
+    .uri ="/get",
+    .method = HTTP_GET,
+    .handler = get_handler_str,
+    .user_ctx = NULL
+    };
+
 
 /* URI handler structure for POST /uri */
 httpd_uri_t uri_post = {
@@ -76,6 +134,7 @@ httpd_handle_t start_webserver(void)
         /* Register URI handlers */
         httpd_register_uri_handler(server, &uri_get);
         httpd_register_uri_handler(server, &uri_post);
+        httpd_register_uri_handler(server, &uri_get_input);
     }
     /* If server failed to start, handle will be NULL */
     return server;
